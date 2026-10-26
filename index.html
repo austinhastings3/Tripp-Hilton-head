@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hilton Head Ryder Cup</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#EAF0ED;--panel:#fff;--tripp:#1F5C4A;--mj:#8A3B2B;--ink:#20261F;--line:#D9DCD2;--brass:#B8863B;--muted:#66705F;--hd:#16281F;--hdtext:#F1EFE4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13160F;--panel:#1C2017;--ink:#EEEFE6;--line:#2E342A;--muted:#9AA394}}
+:root[data-theme="dark"]{--bg:#13160F;--panel:#1C2017;--ink:#EEEFE6;--line:#2E342A;--muted:#9AA394}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+#wrap{max-width:480px;margin:0 auto;min-height:100%}
+.hd{background:var(--hd);color:var(--hdtext);padding:16px 14px 0}
+.hd h1{font-size:19px;margin:0 0 2px;font-weight:700}
+.hd p{font-size:11px;opacity:.7;letter-spacing:1px;text-transform:uppercase;margin:0 0 10px}
+.tabs{display:flex;border-top:1px solid rgba(255,255,255,.12)}
+.tab{flex:1;padding:10px 2px;background:none;border:none;color:var(--hdtext);font-size:12px;font-weight:600;cursor:pointer}
+.tab.on{background:#DCC9A3;color:var(--hd)}
+.body{padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px;margin-bottom:12px}
+.st{font-size:15px;font-weight:700;color:var(--tripp);margin:0 0 10px}
+.muted{color:var(--muted);font-size:12px;margin-bottom:8px}
+input,select{border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px;background:var(--panel);color:var(--ink);font-family:inherit}
+.row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.chip{padding:6px 10px;border-radius:16px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.chip.a{background:var(--tripp);border-color:var(--tripp);color:#fff}
+.chip.b{background:var(--mj);border-color:var(--mj);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;background:var(--tripp);color:#fff;border:none;border-radius:7px;padding:7px 10px;cursor:pointer}
+.btn2{flex:1;padding:9px 4px;font-size:11px;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.btn2.on{background:var(--tripp);color:#fff;border-color:var(--tripp)}
+.pbtn{flex-shrink:0;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.pbtn.t{background:var(--tripp);border-color:var(--tripp);color:#fff}
+.pbtn.m{background:var(--mj);border-color:var(--mj);color:#fff}
+.star{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--panel);cursor:pointer;flex-shrink:0}
+.star.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.gridh{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:6px}
+.hole{border:1px solid var(--line);border-radius:6px;text-align:center;padding:4px 2px}
+.hole label{font-size:9px;color:var(--muted)}
+.hole input{width:100%;text-align:center;border:none;border-top:1px solid var(--line);font-size:14px;font-weight:700;padding:3px 0;background:transparent;color:var(--tripp)}
+.cup{background:var(--hd);color:var(--hdtext);border:none;text-align:center}
+.score{font-family:ui-monospace,monospace;font-size:30px;font-weight:700}
+hr{border:none;border-top:1px solid var(--line);margin:8px 0}
+.mrow{font-size:12px;margin-bottom:3px}
+.mstat{font-family:ui-monospace,monospace;font-weight:700;font-size:13px}
+a.x{color:#A6432F;text-decoration:none;cursor:pointer;float:right}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="app" style="padding:40px;text-align:center;color:var(--muted)">Loading trip…</div></div>
+<script>
+const ROUNDS=[
+ {id:'r1',label:'Thu · Best Ball',course:'Oyster Reef',type:'bestball',pts:3},
+ {id:'r2',label:'Fri AM · Shamble',course:'George Fazio',type:'shamble',pts:3},
+ {id:'r3',label:'Fri PM · Scramble',course:'Arthur Hills',type:'scramble',pts:3},
+ {id:'r4',label:'Sat · Singles',course:'Harbour Town',type:'singles',pts:6}
+];
+const SIDE={bestball:2,shamble:2,scramble:2,singles:1};
+const firebaseConfig={apiKey:"AIzaSyD0v6BO20AwPydmpjVFa74lkYpSx_L2Us4",authDomain:"hilton-head-bach.firebaseapp.com",projectId:"hilton-head-bach",storageBucket:"hilton-head-bach.firebasestorage.app",messagingSenderId:"1024289513918",appId:"1:1024289513918:web:3f7589d1e2426bed9259ef"};
+let state=null, fsdb=null, tab='setup', playRound=0, draft={}, score={pid:'',mi:0,side:'A'}, saveTimer=null;
+
+function defState(){
+  return {players:Array.from({length:12},(_,i)=>({id:'p'+(i+1),name:'',hi:0,team:null,captain:null})),
+    matches:{r1:[],r2:[],r3:[],r4:[]}, scores:{r1:{},r2:{},r3:{},r4:{}}, pot:{ryderCup:100,skinsPerRound:0}};
+}
+function nameOf(id){const p=state.players.find(x=>x.id===id);return p?(p.name||id):id}
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{if(fsdb)try{await fsdb.collection('data').doc('trip').set(state)}catch(e){console.error(e)}},500)}
+function up(){render()}
+
+// ---- mutations ----
+function setPlayer(id,f,v){const p=state.players.find(x=>x.id===id);p[f]=f==='hi'?Number(v):v;save();up()}
+function cycleTeam(id){const p=state.players.find(x=>x.id===id);p.team=p.team===null?'tripp':p.team==='tripp'?'mj':null;save();up()}
+function setCaptain(id,side){state.players.forEach(p=>{if(p.captain===side)p.captain=null});const p=state.players.find(x=>x.id===id);p.captain=p.captain===side?null:side;if(p.captain)p.team=side;save();up()}
+function setPot(f,v){state.pot[f]=Number(v)||0;save();up()}
+function cycleDraft(id,size){const cur=draft[id];const next=cur===undefined?'A':cur==='A'?'B':undefined;if(next===undefined)delete draft[id];else draft[id]=next;render()}
+function saveMatch(rid,size){const a=Object.keys(draft).filter(k=>draft[k]==='A');const b=Object.keys(draft).filter(k=>draft[k]==='B');if(a.length!==size||b.length!==size)return;state.matches[rid].push({sideA:a,sideB:b});draft={};save();up()}
+function delMatch(rid,i){state.matches[rid].splice(i,1);save();up()}
+function setScoreHole(key,rid,h,v){const sc=state.scores[rid];if(!sc[key])sc[key]=Array(18).fill(null);sc[key][h]=v===''?null:Number(v);save()}
+
+// ---- scoring calc ----
+// every round uses the same rule: each player logs their own gross score,
+// and the side's hole score is the lower of its players' scores. For a
+// 2-man scramble both partners naturally log the same shared number, so
+// this still lands on the correct single team score for that hole.
+function computeMatch(rid,m,mi){
+  const sc=state.scores[rid]||{};
+  function val(side,h){
+    const ids=side==='A'?m.sideA:m.sideB;
+    const vs=ids.map(pid=>(sc[pid]||[])[h]).filter(v=>v!=null).map(Number);
+    return vs.length<ids.length?null:Math.min(...vs);
+  }
+  let aT=0,bT=0,c=0;
+  for(let h=0;h<18;h++){const a=val('A',h),b=val('B',h);if(a==null||b==null)continue;aT+=a;bT+=b;c++}
+  const done=c===18;
+  const winner=done?(aT<bT?'A':bT<aT?'B':'tie'):null;
+  return {aT,bT,c,done,winner};
+}
+function teamOf(ids){for(const id of ids){const p=state.players.find(x=>x.id===id);if(p&&p.team)return p.team}return null}
+function allMatches(){const out=[];ROUNDS.forEach(r=>{(state.matches[r.id]||[]).forEach((m,mi)=>{out.push({r,m,mi,calc:computeMatch(r.id,m,mi)})})});return out}
+function points(){const pts={tripp:0,mj:0};allMatches().forEach(({m,calc})=>{if(!calc.done)return;const ta=teamOf(m.sideA),tb=teamOf(m.sideB);if(calc.winner==='tie'){if(ta)pts[ta]+=.5;if(tb)pts[tb]+=.5}else if(calc.winner==='A'&&ta)pts[ta]+=1;else if(calc.winner==='B'&&tb)pts[tb]+=1});return pts}
+function skinsFor(rid){
+  const r=ROUNDS.find(x=>x.id===rid); if(r.type==='scramble')return null;
+  const sc=state.scores[rid]||{}, ids=state.players.map(p=>p.id);
+  let carry=0; const won=[];
+  for(let h=0;h<18;h++){
+    const es=ids.map(pid=>({pid,v:(sc[pid]||[])[h]})).filter(e=>e.v!=null);
+    if(es.length<ids.length)continue;
+    const min=Math.min(...es.map(e=>Number(e.v))); const w=es.filter(e=>Number(e.v)===min);
+    if(w.length===1){won.push(w[0].pid);carry=0}else carry++;
+  }
+  const pot=state.pot.skinsPerRound||0, val=won.length?pot/won.length:0;
+  const by={}; won.forEach(pid=>by[pid]=(by[pid]||0)+1);
+  return {won,val,by,pot};
+}
+
+// ---- render ----
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML = header() + (tab==='setup'?setupTab():tab==='play'?playTab():standingsTab());
+}
+function header(){
+  const tabs=[['setup','Setup'],['play','Play'],['standings','Standings']];
+  return `<div class="hd"><h1>Hilton Head Ryder Cup</h1><p>April 1\u20134 \u00b7 Team Tripp vs Team MJ</p>
+  <div class="tabs">${tabs.map(([id,l])=>`<button class="tab ${tab===id?'on':''}" onclick="tab='${id}';render()">${l}</button>`).join('')}</div></div>
+  <div class="body" id="bodyc">`;
+}
+function setupTab(){
+  const tc=state.players.filter(p=>p.team==='tripp').length, mc=state.players.filter(p=>p.team==='mj').length;
+  let h=`<div class="card"><div class="st">Roster, Handicap &amp; Draft</div>
+  <div class="muted">Tap the team pill to cycle Unassigned \u2192 Tripp \u2192 MJ. Star = captain (auto-joins that team). Handicap only helps balance the draft \u2014 it's not used in scoring.</div>
+  <div class="muted"><b style="color:var(--tripp)">Tripp ${tc}/6</b> &nbsp; <b style="color:var(--mj)">MJ ${mc}/6</b></div>`;
+  state.players.forEach((p,i)=>{
+    h+=`<div class="row">
+    <input style="flex:2" placeholder="Player ${i+1}" value="${p.name}" onchange="setPlayer('${p.id}','name',this.value)">
+    <input style="width:50px" type="number" step="0.1" placeholder="HI" value="${p.hi}" onchange="setPlayer('${p.id}','hi',this.value)">
+    <button class="pbtn ${p.team==='tripp'?'t':p.team==='mj'?'m':''}" onclick="cycleTeam('${p.id}')">${p.team==='tripp'?'TRIPP':p.team==='mj'?'MJ':'\u2014'}</button>
+    <button class="star ${p.captain==='tripp'?'on':''}" onclick="setCaptain('${p.id}','tripp')" title="Capt. Tripp">\u2605</button>
+    <button class="star ${p.captain==='mj'?'on':''}" onclick="setCaptain('${p.id}','mj')" title="Capt. MJ">\u2605</button>
+    </div>`;
+  });
+  h+='</div>';
+  ROUNDS.forEach(r=>{h+=`<div class="card"><div class="st">${r.label}</div><div class="muted">${r.course} \u00b7 ${r.type==='singles'?'1v1 singles':r.type+' (2-man)'} \u00b7 ${r.pts} pts</div></div>`});
+  return h;
+}
+function playTab(){
+  const r=ROUNDS[playRound], size=SIDE[r.type], matches=state.matches[r.id]||[];
+  let h=`<div class="gridh" style="grid-template-columns:repeat(4,1fr)">${ROUNDS.map((rr,i)=>`<button class="btn2 ${i===playRound?'on':''}" onclick="playRound=${i};draft={};render()">${rr.label.split(' \u00b7 ')[0]}</button>`).join('')}</div>`;
+  const assigned=new Set(matches.flatMap(m=>[...m.sideA,...m.sideB]));
+  const avail=state.players.filter(p=>!assigned.has(p.id));
+  const aIds=Object.keys(draft).filter(k=>draft[k]==='A'), bIds=Object.keys(draft).filter(k=>draft[k]==='B');
+  h+=`<div class="card"><div class="st">${r.label} \u2014 Build Matches</div>
+  <div class="muted">Tap for Side Tripp, again for Side MJ. ${size}v${size} per match.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${avail.map(p=>`<button class="chip ${draft[p.id]==='A'?'a':draft[p.id]==='B'?'b':''}" onclick="cycleDraft('${p.id}',${size})">${p.name||p.id}</button>`).join('')||'<span class="muted">Everyone is matched.</span>'}</div>
+  <button class="btn" style="width:100%;justify-content:center" onclick="saveMatch('${r.id}',${size})">Save Match (${aIds.length}v${bIds.length} of ${size}v${size})</button>
+  <hr>${matches.map((m,i)=>`<div class="mrow"><a class="x" onclick="delMatch('${r.id}',${i})">\u2715</a><b style="color:var(--tripp)">${m.sideA.map(nameOf).join(' & ')}</b> vs <b style="color:var(--mj)">${m.sideB.map(nameOf).join(' & ')}</b></div>`).join('')||'<div class="muted">No matches yet.</div>'}
+  </div>`;
+
+  h+=`<div class="card"><div class="st">Enter Scores</div>`;
+  if(r.type==='scramble'){
+    h+=`<div class="muted">Scramble: both partners can log the same shared score \u2014 it's one ball, so it'll be identical either way.</div>`;
+  }
+  const pid=score.pid||state.players[0].id;
+  h+=`<select style="width:100%;margin-bottom:8px" onchange="score.pid=this.value;render()">${state.players.map(p=>`<option value="${p.id}" ${p.id===pid?'selected':''}>${p.name||p.id}${p.team?(' \u00b7 '+(p.team==='tripp'?'Tripp':'MJ')):''}</option>`).join('')}</select>`;
+  h+=holeGrid((state.scores[r.id][pid])||Array(18).fill(null), pid, r.id);
+  h+='</div>';
+  return h;
+}
+function holeGrid(arr,key,rid){
+  let h='<div class="gridh">';
+  for(let i=0;i<9;i++)h+=holeCell(i,arr[i],key,rid);
+  h+='</div><div class="muted" style="font-weight:700">BACK NINE</div><div class="gridh">';
+  for(let i=9;i<18;i++)h+=holeCell(i,arr[i],key,rid);
+  h+='</div>';
+  return h;
+}
+function holeCell(i,v,key,rid){
+  return `<div class="hole"><label>#${i+1}</label><input type="number" value="${v==null?'':v}" onchange="setScoreHole('${key}','${rid}',${i},this.value)"></div>`;
+}
+function standingsTab(){
+  const pts=points();
+  let h=`<div class="card cup"><div style="text-align:center;font-size:13px;opacity:.8;margin-bottom:6px">Needs 8 to win the Cup</div>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+  <div style="flex:1;text-align:center"><div style="font-size:12px;font-weight:700">TRIPP</div><div class="score">${pts.tripp}</div></div>
+  <div style="opacity:.5">\u2013</div>
+  <div style="flex:1;text-align:center"><div style="font-size:12px;font-weight:700">MJ</div><div class="score">${pts.mj}</div></div>
+  </div><div style="text-align:center;font-size:11px;opacity:.6;margin-top:4px">${pts.tripp+pts.mj} of 15 points decided</div></div>`;
+
+  ROUNDS.forEach(r=>{
+    const matches=(state.matches[r.id]||[]).map((m,mi)=>({m,calc:computeMatch(r.id,m,mi)}));
+    h+=`<div class="card"><div class="st">${r.label}</div>`;
+    if(!matches.length)h+='<div class="muted">No matches set.</div>';
+    matches.forEach(({m,calc})=>{
+      const diff=Math.abs(calc.aT-calc.bT);
+      const status=calc.done?(calc.winner==='tie'?'Halved':(calc.winner==='A'?m.sideA.map(nameOf).join('/'):m.sideB.map(nameOf).join('/'))+' win '+diff):('thru '+calc.c);
+      h+=`<div class="mrow"><b style="color:var(--tripp)">${m.sideA.map(nameOf).join(' & ')}</b> vs <b style="color:var(--mj)">${m.sideB.map(nameOf).join(' & ')}</b></div><div class="mstat">${status}</div><hr>`;
+    });
+    const sk=skinsFor(r.id);
+    if(sk){
+      h+=`<div class="muted" style="margin-top:4px">Skins pot $${sk.pot} \u00b7 ${sk.won.length} holes won \u00b7 $${sk.val.toFixed(2)}/skin</div>`;
+      Object.entries(sk.by).sort((a,b)=>b[1]-a[1]).forEach(([pid,c])=>{h+=`<div class="mrow">${nameOf(pid)} (${c}) \u2014 $${(c*sk.val).toFixed(2)}</div>`});
+    } else h+=`<div class="muted" style="margin-top:4px">No skins on scramble day.</div>`;
+    h+='</div>';
+  });
+
+  h+=`<div class="card"><div class="st">Payouts</div>
+  <div class="muted">Ryder Cup pot (split 6 ways on the winning team):</div>
+  <input type="number" value="${state.pot.ryderCup}" onchange="setPot('ryderCup',this.value)" style="width:110px;margin-bottom:10px">
+  <div class="muted">Skins pot, per eligible round:</div>
+  <input type="number" value="${state.pot.skinsPerRound}" onchange="setPot('skinsPerRound',this.value)" style="width:110px">
+  </div>`;
+  return h;
+}
+
+// ---- boot ----
+try{
+  firebase.initializeApp(firebaseConfig);
+  fsdb = firebase.firestore();
+  fsdb.collection('data').doc('trip').onSnapshot(snap=>{
+    state = snap.exists ? snap.data() : defState();
+    render();
+  }, e=>{ console.error(e); if(!state){state=defState();render()} });
+}catch(e){ console.error(e); state=defState(); render(); }
+</script>
+</body>
+</html>
